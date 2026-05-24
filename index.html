@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdSee$ Premium</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #080d1a; --bg3: #141f35; --card: #111827; --border: #1e2d47;
+            --accent: #4f6ef7; --accent2: #06d6a0; --accent3: #f7c948;
+            --text: #e8eaf6; --muted: #5a6a85;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; }
+        .page { display: none; height: calc(100vh - 65px); overflow-y: auto; padding: 0 16px 100px; }
+        .page.active-page { display: block; }
+        .page::-webkit-scrollbar { display: none; }
+
+        .global-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 10px; background: var(--bg); position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+        .profile-row { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; overflow: hidden; flex-shrink: 0; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-name { font-size: 15px; font-weight: 600; }
+        .user-id { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+        .balance-block { text-align: right; }
+        .balance-label { font-size: 10px; color: var(--muted); }
+        .balance-val { font-size: 22px; font-weight: 700; color: var(--accent2); font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
+        .card-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+        .stat-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
+        .stat-val { font-size: 17px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent); }
+        .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+        .task-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 16px; margin-bottom: 14px; }
+        .task-header { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; flex-wrap: wrap; }
+        .task-stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+        .task-stat { background: var(--bg3); border-radius: 10px; padding: 10px; text-align: center; }
+        .task-stat-val { font-size: 15px; font-weight: 700; color: var(--accent2); font-family: 'JetBrains Mono', monospace; }
+        .task-stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+        .task-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: flex; justify-content: space-between; align-items: center; }
+        .task-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; }
+        .task-info .task-name { font-size: 14px; font-weight: 600; }
+        .task-info .task-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        .badge-live { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+        .btn-open { border: none; border-radius: 10px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; cursor: pointer; background: var(--accent); color: white; padding: 9px 18px; font-size: 13px; }
+        .btn-primary { background: var(--accent); color: white; border: none; border-radius: 12px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; cursor: pointer; padding: 12px 20px; font-size: 14px; width: 100%; }
+        .btn-green { background: var(--accent2); color: #080d1a; border: none; border-radius: 14px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; cursor: pointer; padding: 15px; font-size: 15px; width: 100%; margin-top: 16px; }
+
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .history-item:last-child { border: none; }
+        .history-method { font-size: 13px; font-weight: 600; }
+        .history-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .history-amount { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .badge-success { font-size: 10px; color: var(--accent2); font-weight: 700; }
+        .badge-pending { font-size: 10px; color: var(--accent3); font-weight: 700; }
+
+        .refer-banner { background: linear-gradient(135deg, #0f3460, #1a1a6e); border: 1px solid #2a3a7a; border-radius: 18px; padding: 20px; margin-bottom: 14px; }
+        .refer-stats { display: flex; gap: 30px; margin-top: 14px; }
+        .refer-stat strong { font-size: 20px; font-weight: 700; color: var(--accent2); }
+        .refer-stat span { font-size: 11px; color: var(--muted); display: block; }
+        .link-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 11px; color: var(--accent); word-break: break-all; margin: 12px 0; font-family: 'JetBrains Mono', monospace; }
+        .ref-list-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .ref-list-item:last-child { border: none; }
+        .ref-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+        .ref-name { font-size: 13px; font-weight: 600; }
+        .ref-time { font-size: 11px; color: var(--muted); }
+        .ref-earn { font-size: 13px; font-weight: 700; color: var(--accent2); font-family: 'JetBrains Mono', monospace; margin-left: auto; white-space: nowrap; }
+
+        .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+        .method-box { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; padding: 12px 6px; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .method-box.selected { border-color: var(--accent); background: rgba(79,110,247,0.1); color: var(--accent); }
+        .form-input { width: 100%; padding: 13px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 14px; font-family: 'Space Grotesk', sans-serif; margin-top: 8px; outline: none; }
+        .form-input:focus { border-color: var(--accent); }
+        .form-label { font-size: 12px; color: var(--muted); margin-top: 14px; display: block; }
+        .min-info { background: rgba(247,201,72,0.08); border: 1px solid rgba(247,201,72,0.2); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--accent3); margin: 12px 0; }
+        .notice { background: rgba(79,110,247,0.08); border: 1px dashed rgba(79,110,247,0.3); border-radius: 12px; padding: 12px; font-size: 12px; color: #7a92d4; text-align: center; margin-bottom: 14px; }
+        .page-title { font-size: 20px; font-weight: 700; margin: 16px 0 14px; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--card); display: flex; justify-content: space-around; padding: 10px 0 14px; border-top: 1px solid var(--border); z-index: 999; }
+        .nav-item { text-align: center; color: var(--muted); font-size: 10px; flex: 1; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .nav-item.active { color: var(--accent); }
+        .nav-item i { font-size: 22px; }
+        .toast { position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px); background: var(--accent2); color: #080d1a; padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 700; z-index: 9999; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Monetag Task Page ── */
+        #monetag-page {
+            position: fixed; inset: 0; background: var(--bg); z-index: 500;
+            display: none; flex-direction: column;
+        }
+        #monetag-page.open { display: flex; }
+        .mtag-header {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 16px; border-bottom: 1px solid var(--border);
+            background: var(--bg); flex-shrink: 0;
+        }
+        .mtag-back { background: none; border: none; color: var(--text); cursor: pointer; display: flex; align-items: center; }
+        .mtag-title { font-size: 16px; font-weight: 700; flex: 1; }
+        .mtag-body { flex: 1; overflow-y: auto; padding: 16px; }
+        .mtag-body::-webkit-scrollbar { display: none; }
+
+        /* Cooldown banner */
+        .cooldown-banner {
+            background: linear-gradient(135deg, #1a0f3c, #2d1a6e);
+            border: 1px solid #3a2a7a; border-radius: 18px;
+            padding: 24px; text-align: center; margin-bottom: 16px;
+        }
+        .cooldown-icon { font-size: 48px; margin-bottom: 8px; }
+        .cooldown-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .cooldown-timer { font-size: 36px; font-weight: 700; color: var(--accent3); font-family: 'JetBrains Mono', monospace; letter-spacing: 2px; }
+        .cooldown-sub { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+        /* Task list */
+        .mtag-task-list { display: flex; flex-direction: column; gap: 10px; }
+        .mtag-task-item {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 14px 16px;
+            display: flex; align-items: center; gap: 14px;
+            position: relative; overflow: hidden;
+        }
+        .mtag-task-item.completed { border-color: rgba(6,214,160,0.4); }
+        .mtag-task-item.active-task { border-color: rgba(247,201,72,0.6); background: rgba(247,201,72,0.04); }
+        .mtag-task-item.locked { opacity: 0.45; }
+
+        .mtag-num {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--bg3); border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .mtag-num.done { background: rgba(6,214,160,0.15); border-color: var(--accent2); color: var(--accent2); }
+        .mtag-num.active { background: rgba(247,201,72,0.15); border-color: var(--accent3); color: var(--accent3); }
+
+        .mtag-info { flex: 1; }
+        .mtag-info .mtag-name { font-size: 13px; font-weight: 600; }
+        .mtag-info .mtag-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        .mtag-action { flex-shrink: 0; }
+        .mtag-btn-watch {
+            background: var(--accent3); color: #080d1a; border: none;
+            border-radius: 10px; font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700; font-size: 12px; padding: 8px 14px; cursor: pointer;
+        }
+        .mtag-btn-watch:disabled { opacity: 0.4; cursor: not-allowed; background: var(--border); color: var(--muted); }
+        .mtag-done-badge { color: var(--accent2); font-size: 22px; }
+        .mtag-lock-icon { color: var(--muted); font-size: 20px; }
+
+        /* Progress bar inside active task */
+        .mtag-progress-wrap {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+            background: rgba(247,201,72,0.15);
+        }
+        .mtag-progress-bar {
+            height: 100%; background: var(--accent3);
+            transition: width 1s linear; width: 0%;
+        }
+
+        /* Timer overlay */
+        .mtag-timer-overlay {
+            position: fixed; inset: 0; background: rgba(8,13,26,0.92);
+            z-index: 600; display: none; flex-direction: column;
+            align-items: center; justify-content: center; padding: 24px;
+        }
+        .mtag-timer-overlay.open { display: flex; }
+        .mtag-timer-box {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 24px; padding: 32px 24px; width: 100%; max-width: 340px;
+            text-align: center;
+        }
+        .mtag-ad-frame {
+            width: 100%; height: 160px; border-radius: 14px;
+            background: var(--bg3); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 20px; overflow: hidden; position: relative;
+        }
+        .mtag-ad-frame iframe { width: 100%; height: 100%; border: none; pointer-events: none; }
+        .mtag-ad-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; }
+        .mtag-countdown { font-size: 52px; font-weight: 700; color: var(--accent3); font-family: 'JetBrains Mono', monospace; line-height: 1; }
+        .mtag-countdown-sub { font-size: 13px; color: var(--muted); margin-top: 6px; }
+        .mtag-confirm-btn {
+            width: 100%; padding: 14px; margin-top: 18px;
+            background: var(--accent2); color: #080d1a;
+            border: none; border-radius: 14px; font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700; font-size: 15px; cursor: pointer;
+        }
+        .mtag-confirm-btn:disabled { opacity: 0.35; cursor: not-allowed; background: var(--border); color: var(--muted); }
+
+        /* Summary card */
+        .mtag-summary {
+            background: linear-gradient(135deg, #0a2a1a, #0a1f35);
+            border: 1px solid rgba(6,214,160,0.3);
+            border-radius: 18px; padding: 20px; text-align: center; margin-bottom: 16px;
+        }
+        .mtag-summary-icon { font-size: 40px; margin-bottom: 8px; }
+        .mtag-summary-title { font-size: 15px; font-weight: 700; color: var(--accent2); }
+        .mtag-summary-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    </style>
+</head>
+<body>
+
+<div class="global-header">
+    <div class="profile-row">
+        <div class="avatar" id="user-avatar">A</div>
+        <div>
+            <div class="user-name" id="display-name">Loading...</div>
+            <div class="user-id" id="display-id">ID: ---</div>
+        </div>
+    </div>
+    <div class="balance-block">
+        <div class="balance-label">Total Balance</div>
+        <div class="balance-val" id="global-balance">$0.000</div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- HOME -->
+<div id="home" class="page active-page">
+    <div class="stats-grid">
+        <div class="stat-box"><div class="stat-val" id="stat-withdrawn">$0.00</div><div class="stat-lbl">Withdrawn</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-tasks">0</div><div class="stat-lbl">Tasks Done</div></div>
+        <div class="stat-box"><div class="stat-val" id="stat-refs">0</div><div class="stat-lbl">Referrals</div></div>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="material-icons-round" style="font-size:16px;color:var(--accent)">bar_chart</i> Income (7 Days)</div>
+        <canvas id="incomeChart" height="130"></canvas>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="material-icons-round" style="font-size:16px;color:var(--accent2)">history</i> Recent Withdrawals</div>
+        <div id="withdraw-history-home"><div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">No withdrawals yet</div></div>
+    </div>
+</div>
+
+<!-- TASKS -->
+<div id="task" class="page">
+    <div class="page-title">💼 Tasks</div>
+    <div class="notice">📱 Complete tasks below to earn real money instantly!</div>
+
+    <!-- 1. Monetag -->
+    <div class="task-card" style="border-color:rgba(247,201,72,0.4);">
+        <div class="task-header">
+            <i class="material-icons-round" style="font-size:16px;color:var(--accent3)">attach_money</i> Monetag
+            <span class="badge-live" style="background:var(--accent3);color:#080d1a;">✅ LIVE</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--muted);">10 Tasks • $0.010/task</span>
+        </div>
+        <div class="task-stats-row">
+            <div class="task-stat">
+                <div class="task-stat-val" id="monetag-tasks">0</div>
+                <div class="task-stat-lbl">Tasks Done</div>
+            </div>
+            <div class="task-stat">
+                <div class="task-stat-val" id="monetag-earned">$0.000</div>
+                <div class="task-stat-lbl">Earned Here</div>
+            </div>
+        </div>
+        <div class="task-item">
+            <div style="display:flex;align-items:center;">
+                <div class="task-icon" style="background:rgba(247,201,72,0.12);">
+                    <i class="material-icons-round" style="color:var(--accent3);font-size:24px;">play_circle</i>
+                </div>
+                <div class="task-info">
+                    <div class="task-name">Watch Ads</div>
+                    <div class="task-desc">10 tasks • 20s each • cooldown 30min</div>
+                </div>
+            </div>
+            <button class="btn-open" id="monetag-open-btn" style="background:var(--accent3);color:#080d1a;" onclick="openMonetagPage()">Open</button>
+        </div>
+        <div id="monetag-cooldown-row" style="display:none;margin-top:10px;background:rgba(247,201,72,0.06);border:1px solid rgba(247,201,72,0.2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--accent3);text-align:center;">
+            ⏳ Next session in: <strong id="monetag-cd-display">30:00</strong>
+        </div>
+    </div>
+
+    <!-- 2. CPAlead -->
+    <div class="task-card" style="border-color:rgba(6,214,160,0.4);">
+        <div class="task-header">
+            <i class="material-icons-round" style="font-size:16px;color:var(--accent2)">bolt</i> CPAlead
+            <span class="badge-live" style="background:var(--accent2);color:#080d1a;">✅ LIVE</span>
+        </div>
+        <div class="task-stats-row">
+            <div class="task-stat">
+                <div class="task-stat-val" id="cpalead-tasks">0</div>
+                <div class="task-stat-lbl">Tasks Done</div>
+            </div>
+            <div class="task-stat">
+                <div class="task-stat-val" id="cpalead-earned">$0.000</div>
+                <div class="task-stat-lbl">Earned Here</div>
+            </div>
+        </div>
+        <div class="task-item">
+            <div style="display:flex;align-items:center;">
+                <div class="task-icon" style="background:rgba(6,214,160,0.1);">
+                    <i class="material-icons-round" style="color:var(--accent2);font-size:24px;">flash_on</i>
+                </div>
+                <div class="task-info">
+                    <div class="task-name">Fast Offers</div>
+                    <div class="task-desc">Apps, Shorts & Installs</div>
+                </div>
+            </div>
+            <button class="btn-open" style="background:var(--accent2);color:#080d1a;" onclick="openCPALead()">Open</button>
+        </div>
+    </div>
+
+    <!-- 3. CPAGrip -->
+    <div class="task-card" style="border-color:rgba(79,110,247,0.4);">
+        <div class="task-header">
+            <i class="material-icons-round" style="font-size:16px;color:var(--accent)">stars</i> CPAGrip
+            <span class="badge-live" style="background:var(--accent);color:white;">✅ LIVE</span>
+        </div>
+        <div class="task-stats-row">
+            <div class="task-stat">
+                <div class="task-stat-val" id="cpagrip-tasks">0</div>
+                <div class="task-stat-lbl">Tasks Done</div>
+            </div>
+            <div class="task-stat">
+                <div class="task-stat-val" id="cpagrip-earned">$0.000</div>
+                <div class="task-stat-lbl">Earned Here</div>
+            </div>
+        </div>
+        <div class="task-item">
+            <div style="display:flex;align-items:center;">
+                <div class="task-icon" style="background:rgba(79,110,247,0.12);">
+                    <i class="material-icons-round" style="color:var(--accent);font-size:24px;">videogame_asset</i>
+                </div>
+                <div class="task-info">
+                    <div class="task-name">Play & Earn</div>
+                    <div class="task-desc">Games, Surveys & Apps</div>
+                </div>
+            </div>
+            <button class="btn-open" onclick="openCPAGrip()">Open</button>
+        </div>
+    </div>
+</div>
+
+<!-- REFER -->
+<div id="refer" class="page">
+    <div class="page-title">👥 Refer & Earn</div>
+    <div class="refer-banner">
+        <div style="font-size:15px;font-weight:600;">Invite friends, earn together!</div>
+        <div style="font-size:12px;color:#7a92d4;margin-top:6px;">Earn <strong style="color:var(--accent2)">4%</strong> of every offer your friend completes!</div>
+        <div class="refer-stats">
+            <div class="refer-stat"><strong id="ref-count">0</strong><span>Referrals</span></div>
+            <div class="refer-stat"><strong id="ref-earned">$0.000</strong><span>Earned</span></div>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-title">Your Referral Link</div>
+        <div class="link-box" id="ref-link">Loading...</div>
+        <button class="btn-primary" onclick="copyRefLink()">📋 Copy Link</button>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="material-icons-round" style="font-size:16px;">group</i> Referral List</div>
+        <div id="ref-list-container"><div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">No referrals yet<br><span style="font-size:11px;">Share your link to earn 4% commission!</span></div></div>
+    </div>
+    <div class="card">
+        <div class="card-title">How it works</div>
+        <div style="font-size:13px;color:var(--muted);line-height:2;">
+            1️⃣ Copy your referral link<br>
+            2️⃣ Share with friends or in groups<br>
+            3️⃣ Friend clicks link → opens bot directly<br>
+            4️⃣ Friend completes tasks & earns<br>
+            5️⃣ You get <strong style="color:var(--accent2)">4%</strong> of their every earning ✅
+        </div>
+    </div>
+</div>
+
+<!-- WALLET -->
+<div id="wallet" class="page">
+    <div class="page-title">💳 Withdraw</div>
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div>
+                <div style="font-size:12px;color:var(--muted)">Available Balance</div>
+                <div style="font-size:26px;font-weight:700;color:var(--accent2);font-family:'JetBrains Mono',monospace;" id="wallet-balance">$0.000</div>
+            </div>
+            <i class="material-icons-round" style="font-size:40px;color:var(--border)">account_balance_wallet</i>
+        </div>
+        <div class="min-info">⚠️ Minimum withdrawal: <strong>$50.000</strong></div>
+        <span class="form-label">Payment Method</span>
+        <div class="method-grid">
+            <div class="method-box" onclick="selectMethod(this,'bKash')">bKash</div>
+            <div class="method-box" onclick="selectMethod(this,'Nagad')">Nagad</div>
+            <div class="method-box" onclick="selectMethod(this,'Rocket')">Rocket</div>
+            <div class="method-box" onclick="selectMethod(this,'Binance')">Binance</div>
+            <div class="method-box" onclick="selectMethod(this,'USDT')">USDT</div>
+            <div class="method-box" onclick="selectMethod(this,'Litecoin')">Litecoin</div>
+        </div>
+        <span class="form-label">Account / Wallet Address</span>
+        <input class="form-input" id="withdraw-account" placeholder="Enter your account number or wallet">
+        <span class="form-label">Amount (USD)</span>
+        <input class="form-input" id="withdraw-amount" type="number" placeholder="e.g. 50">
+        <button class="btn-green" onclick="submitWithdraw()">💸 Submit Withdrawal</button>
+    </div>
+    <div class="card">
+        <div class="card-title"><i class="material-icons-round" style="font-size:16px;">receipt_long</i> Withdrawal History</div>
+        <div id="withdraw-history-wallet"><div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">No withdrawals yet</div></div>
+    </div>
+</div>
+
+<nav class="nav-bar">
+    <div class="nav-item active" onclick="nav('home',this)"><i class="material-icons-round">home</i>Home</div>
+    <div class="nav-item" onclick="nav('task',this)"><i class="material-icons-round">task_alt</i>Tasks</div>
+    <div class="nav-item" onclick="nav('refer',this)"><i class="material-icons-round">group_add</i>Refer</div>
+    <div class="nav-item" onclick="nav('wallet',this)"><i class="material-icons-round">account_balance_wallet</i>Wallet</div>
+</nav>
+
+<!-- ══════════════ MONETAG TASK PAGE ══════════════ -->
+<div id="monetag-page">
+    <div class="mtag-header">
+        <button class="mtag-back" onclick="closeMonetagPage()">
+            <i class="material-icons-round">arrow_back</i>
+        </button>
+        <div class="mtag-title">💰 Monetag Tasks</div>
+        <div style="font-size:11px;color:var(--muted);text-align:right;">
+            <div id="mtag-progress-label">0/10</div>
+            <div style="color:var(--accent3)" id="mtag-earned-label">$0.000</div>
+        </div>
+    </div>
+    <div class="mtag-body" id="mtag-body">
+        <!-- rendered by JS -->
+    </div>
+</div>
+
+<!-- ══════════════ TIMER OVERLAY ══════════════ -->
+<div class="mtag-timer-overlay" id="mtag-timer-overlay">
+    <div class="mtag-timer-box">
+        <div class="mtag-ad-label">📢 Ad — Please wait</div>
+        <div class="mtag-ad-frame" id="mtag-ad-frame">
+            <iframe id="mtag-iframe" src="" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+        </div>
+        <div class="mtag-countdown" id="mtag-countdown">20</div>
+        <div class="mtag-countdown-sub">seconds remaining</div>
+        <button class="mtag-confirm-btn" id="mtag-confirm-btn" disabled onclick="confirmTask()">
+            ✅ Claim Reward
+        </button>
+    </div>
+</div>
+
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();
+tg.setHeaderColor('#080d1a');
+
+const BOT_TOKEN = '8833015131:AAH1oiiNt55BJ5k21EOZ3o7WYtmmPqo7zns';
+const ADMIN_ID = '6026482193';
+const BOT_USERNAME = 'Adsee1_bot';
+const MIN_WITHDRAW = 50.0;
+const USER_KEY = 'adsee_v3_data';
+const MONETAG_URL = 'https://omg10.com/4/11005394';
+const TASK_DURATION = 20;   // seconds per task
+const COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes
+const TOTAL_TASKS = 10;
+const REWARD_PER_TASK = 0.010;
+
+let userData = loadData();
+let selectedMethod = '';
+let chartInstance = null;
+
+// Monetag state
+let mtagCurrentTask = -1;  // which task is being watched (-1 = none)
+let mtagTimerInt = null;   // countdown interval
+let mtagCountdown = TASK_DURATION;
+let mtagCooldownInt = null;
+
+function defaultData(uid, referredBy) {
+    return {
+        uid, referredBy: referredBy || null,
+        balance: 0.000, totalWithdrawn: 0.00,
+        tasksDone: 0, referrals: 0,
+        refEarned: 0.000, refList: [],
+        withdrawHistory: [], incomeHistory: [0,0,0,0,0,0,0],
+        taskStats: {
+            cpalead: { tasks: 0, earned: 0 },
+            cpagrip: { tasks: 0, earned: 0 },
+            monetag: { tasks: 0, earned: 0 }
+        },
+        monetag: {
+            completedCount: 0,       // tasks done this session
+            cooldownUntil: 0         // timestamp when cooldown ends
+        },
+        referralDone: false
+    };
+}
+
+function loadData() {
+    try { const r = localStorage.getItem(USER_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+function saveData() { localStorage.setItem(USER_KEY, JSON.stringify(userData)); }
+
+function init() {
+    const tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
+    const uid = tgUser ? String(tgUser.id) : ADMIN_ID;
+    const startParam = (tg.initDataUnsafe && tg.initDataUnsafe.start_param) || null;
+
+    if (!userData || userData.uid !== uid) {
+        const referredBy = (startParam && startParam !== uid) ? startParam : null;
+        userData = defaultData(uid, referredBy);
+        if (referredBy && !userData.referralDone) {
+            userData.referralDone = true;
+            creditReferrer(referredBy, uid, tgUser);
+        }
+        saveData();
+    }
+    // Ensure monetag field exists for old saves
+    if (!userData.monetag) userData.monetag = { completedCount: 0, cooldownUntil: 0 };
+    if (!userData.taskStats) userData.taskStats = { cpalead:{tasks:0,earned:0}, cpagrip:{tasks:0,earned:0}, monetag:{tasks:0,earned:0} };
+
+    if (tgUser) {
+        const name = (tgUser.first_name || '') + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+        document.getElementById('display-name').innerText = name.trim() || 'User';
+        document.getElementById('display-id').innerText = `ID: ${uid}`;
+        const av = document.getElementById('user-avatar');
+        if (tgUser.photo_url) av.innerHTML = `<img src="${tgUser.photo_url}">`;
+        else av.innerText = (tgUser.first_name || 'U').charAt(0).toUpperCase();
+    } else {
+        document.getElementById('display-name').innerText = 'Demo User';
+        document.getElementById('display-id').innerText = `ID: ${uid}`;
+    }
+
+    document.getElementById('ref-link').innerText = `https://t.me/${BOT_USERNAME}?startapp=${uid}`;
+    updateUI();
+    buildChart();
+    startCooldownTick(); // keep cooldown display live
+}
+
+// ── Referral ───────────────────────────────────────────────
+function creditReferrer(referrerId, newUserId, newUser) {
+    const newName = newUser ? ((newUser.first_name||'') + (newUser.last_name ? ' '+newUser.last_name : '')).trim() : newUserId;
+    sendToBot(ADMIN_ID, `👥 New Referral!\nReferrer: ${referrerId}\nNew User: ${newName} (${newUserId})`);
+    sendToBot(referrerId, `🎉 ${newName} joined via your link!\nYou will earn 4% of their every task completion!`);
+}
+
+function payReferralCommission(source, amount) {
+    if (!userData.referredBy) return;
+    const commission = parseFloat((amount * 0.04).toFixed(3));
+    if (commission <= 0) return;
+    sendToBot(userData.referredBy, `💸 Referral Commission!\nYour friend completed a ${source} offer!\nYou earned: +$${commission.toFixed(3)} (4%)\nPay manually to their wallet.`);
+    sendToBot(ADMIN_ID, `💸 Commission Due\nReferrer: ${userData.referredBy}\nSource: ${source}\nAmount: $${commission.toFixed(3)}`);
+}
+
+// ── Update UI ──────────────────────────────────────────────
+function updateUI() {
+    document.getElementById('global-balance').innerText = `$${userData.balance.toFixed(3)}`;
+    document.getElementById('wallet-balance').innerText = `$${userData.balance.toFixed(3)}`;
+    document.getElementById('stat-withdrawn').innerText = `$${userData.totalWithdrawn.toFixed(2)}`;
+    document.getElementById('stat-tasks').innerText = userData.tasksDone;
+    document.getElementById('stat-refs').innerText = userData.referrals;
+    document.getElementById('ref-count').innerText = userData.referrals;
+    document.getElementById('ref-earned').innerText = `$${userData.refEarned.toFixed(3)}`;
+
+    document.getElementById('monetag-tasks').innerText = userData.taskStats.monetag.tasks;
+    document.getElementById('monetag-earned').innerText = `$${userData.taskStats.monetag.earned.toFixed(3)}`;
+    document.getElementById('cpalead-tasks').innerText = userData.taskStats.cpalead.tasks;
+    document.getElementById('cpalead-earned').innerText = `$${userData.taskStats.cpalead.earned.toFixed(3)}`;
+    document.getElementById('cpagrip-tasks').innerText = userData.taskStats.cpagrip.tasks;
+    document.getElementById('cpagrip-earned').innerText = `$${userData.taskStats.cpagrip.earned.toFixed(3)}`;
+
+    renderWithdrawHistory();
+    renderRefList();
+    updateMonetagOpenBtn();
+}
+
+// ── Monetag: open/close page ───────────────────────────────
+function openMonetagPage() {
+    try { tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
+    document.getElementById('monetag-page').classList.add('open');
+    renderMonetagPage();
+}
+function closeMonetagPage() {
+    document.getElementById('monetag-page').classList.remove('open');
+    stopTimer();
+}
+
+function isCooldown() {
+    return Date.now() < (userData.monetag.cooldownUntil || 0);
+}
+function isSessionDone() {
+    return userData.monetag.completedCount >= TOTAL_TASKS;
+}
+
+function updateMonetagOpenBtn() {
+    const btn = document.getElementById('monetag-open-btn');
+    const cdRow = document.getElementById('monetag-cooldown-row');
+    if (isCooldown()) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        cdRow.style.display = 'block';
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        cdRow.style.display = 'none';
+    }
+}
+
+function startCooldownTick() {
+    clearInterval(mtagCooldownInt);
+    mtagCooldownInt = setInterval(() => {
+        const el = document.getElementById('monetag-cd-display');
+        if (isCooldown()) {
+            const rem = Math.max(0, userData.monetag.cooldownUntil - Date.now());
+            const m = Math.floor(rem / 60000);
+            const s = Math.floor((rem % 60000) / 1000);
+            if (el) el.innerText = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        } else {
+            // Cooldown ended — reset session
+            if (isSessionDone()) {
+                userData.monetag.completedCount = 0;
+                saveData();
+                updateUI();
+                renderMonetagPage();
+            }
+            updateMonetagOpenBtn();
+        }
+    }, 1000);
+}
+
+function renderMonetagPage() {
+    const body = document.getElementById('mtag-body');
+    const done = userData.monetag.completedCount;
+    const cd = isCooldown();
+
+    // Update header labels
+    document.getElementById('mtag-progress-label').innerText = `${done}/${TOTAL_TASKS}`;
+    document.getElementById('mtag-earned-label').innerText = `$${(done * REWARD_PER_TASK).toFixed(3)}`;
+
+    let html = '';
+
+    if (cd) {
+        // Cooldown banner
+        const rem = Math.max(0, userData.monetag.cooldownUntil - Date.now());
+        const m = Math.floor(rem / 60000);
+        const s = Math.floor((rem % 60000) / 1000);
+        html += `
+        <div class="cooldown-banner">
+            <div class="cooldown-icon">⏳</div>
+            <div class="cooldown-title">All tasks completed!</div>
+            <div class="cooldown-timer" id="mtag-page-cd">${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</div>
+            <div class="cooldown-sub">Next session starts after cooldown</div>
+        </div>
+        <div class="mtag-summary">
+            <div class="mtag-summary-icon">🎉</div>
+            <div class="mtag-summary-title">Session Earned: $${(TOTAL_TASKS * REWARD_PER_TASK).toFixed(3)}</div>
+            <div class="mtag-summary-sub">Come back in 30 minutes for another session!</div>
+        </div>`;
+        // Live countdown inside page
+        clearInterval(window._mtagPageCdInt);
+        window._mtagPageCdInt = setInterval(() => {
+            const el = document.getElementById('mtag-page-cd');
+            if (!el) { clearInterval(window._mtagPageCdInt); return; }
+            const r = Math.max(0, userData.monetag.cooldownUntil - Date.now());
+            const mm = Math.floor(r/60000);
+            const ss = Math.floor((r%60000)/1000);
+            el.innerText = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+            if (r <= 0) {
+                clearInterval(window._mtagPageCdInt);
+                userData.monetag.completedCount = 0;
+                saveData();
+                updateUI();
+                renderMonetagPage();
+            }
+        }, 1000);
+    } else {
+        clearInterval(window._mtagPageCdInt);
+    }
+
+    // Task list
+    html += '<div class="mtag-task-list">';
+    for (let i = 0; i < TOTAL_TASKS; i++) {
+        const isDone = i < done;
+        const isActive = i === done && !cd;
+        const isLocked = i > done || cd;
+
+        let cls = 'mtag-task-item';
+        if (isDone) cls += ' completed';
+        else if (isActive) cls += ' active-task';
+        else cls += ' locked';
+
+        let numCls = 'mtag-num';
+        if (isDone) numCls += ' done';
+        else if (isActive) numCls += ' active';
+
+        let actionHtml = '';
+        if (isDone) {
+            actionHtml = `<div class="mtag-action"><i class="material-icons-round mtag-done-badge">check_circle</i></div>`;
+        } else if (isActive) {
+            actionHtml = `<div class="mtag-action"><button class="mtag-btn-watch" onclick="startTask(${i})">▶ Watch</button></div>`;
+        } else {
+            actionHtml = `<div class="mtag-action"><i class="material-icons-round mtag-lock-icon">lock</i></div>`;
+        }
+
+        const progressBar = isActive ? `<div class="mtag-progress-wrap"><div class="mtag-progress-bar" id="mtag-prog-${i}"></div></div>` : '';
+
+        html += `
+        <div class="${cls}" id="mtag-item-${i}">
+            <div class="${numCls}">${isDone ? '✓' : i+1}</div>
+            <div class="mtag-info">
+                <div class="mtag-name">Task ${i+1}</div>
+                <div class="mtag-sub">${isDone ? 'Completed ✅' : isActive ? 'Your turn — tap Watch' : 'Locked 🔒'} • +$${REWARD_PER_TASK.toFixed(3)}</div>
+            </div>
+            ${actionHtml}
+            ${progressBar}
+        </div>`;
+    }
+    html += '</div>';
+
+    body.innerHTML = html;
+}
+
+// ── Start watching a task ──────────────────────────────────
+function startTask(taskIndex) {
+    if (taskIndex !== userData.monetag.completedCount) return; // safety
+    mtagCurrentTask = taskIndex;
+    mtagCountdown = TASK_DURATION;
+
+    // Open ad URL in background
+    try { tg.openLink(MONETAG_URL); } catch(e) { window.open(MONETAG_URL, '_blank'); }
+
+    // Show timer overlay
+    const overlay = document.getElementById('mtag-timer-overlay');
+    overlay.classList.add('open');
+    document.getElementById('mtag-countdown').innerText = mtagCountdown;
+    document.getElementById('mtag-confirm-btn').disabled = true;
+
+    // Load ad iframe (for visual)
+    const iframe = document.getElementById('mtag-iframe');
+    iframe.src = MONETAG_URL;
+
+    // Start countdown
+    clearInterval(mtagTimerInt);
+    mtagTimerInt = setInterval(() => {
+        mtagCountdown--;
+        document.getElementById('mtag-countdown').innerText = mtagCountdown;
+
+        // Update progress bar in task list
+        const prog = document.getElementById(`mtag-prog-${taskIndex}`);
+        if (prog) {
+            const pct = ((TASK_DURATION - mtagCountdown) / TASK_DURATION) * 100;
+            prog.style.width = pct + '%';
+        }
+
+        if (mtagCountdown <= 0) {
+            clearInterval(mtagTimerInt);
+            document.getElementById('mtag-countdown').innerText = '0';
+            document.getElementById('mtag-confirm-btn').disabled = false;
+            try { tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    clearInterval(mtagTimerInt);
+    const overlay = document.getElementById('mtag-timer-overlay');
+    overlay.classList.remove('open');
+    const iframe = document.getElementById('mtag-iframe');
+    iframe.src = '';
+    mtagCurrentTask = -1;
+}
+
+function confirmTask() {
+    if (mtagCountdown > 0) return;
+    stopTimer();
+
+    // Credit reward
+    userData.monetag.completedCount++;
+    userData.balance = parseFloat((userData.balance + REWARD_PER_TASK).toFixed(3));
+    userData.tasksDone++;
+    userData.taskStats.monetag.tasks++;
+    userData.taskStats.monetag.earned = parseFloat((userData.taskStats.monetag.earned + REWARD_PER_TASK).toFixed(3));
+
+    const day = new Date().getDay();
+    const idx = day === 0 ? 6 : day - 1;
+    userData.incomeHistory[idx] = parseFloat((userData.incomeHistory[idx] + REWARD_PER_TASK).toFixed(3));
+
+    // If all done → start cooldown
+    if (userData.monetag.completedCount >= TOTAL_TASKS) {
+        userData.monetag.cooldownUntil = Date.now() + COOLDOWN_MS;
+    }
+
+    saveData();
+    updateUI();
+    buildChart();
+    payReferralCommission('monetag', REWARD_PER_TASK);
+    showToast(`+$${REWARD_PER_TASK.toFixed(3)} earned! ✅`);
+    renderMonetagPage();
+}
+
+// ── Other offerwalls ───────────────────────────────────────
+function openCPALead() {
+    try { tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
+    openUrl(`https://akamaicdn.org/wall/r4mWAd?subid=${userData.uid}&device=mobile`);
+    awardBonus('cpalead', 0.030);
+}
+function openCPAGrip() {
+    try { tg.HapticFeedback.impactOccurred('medium'); } catch(e) {}
+    openUrl(`https://www.cpagrip.com/view.php?id=2527808&tracking_id=${userData.uid}`);
+    awardBonus('cpagrip', 0.050);
+}
+function openUrl(url) { if (tg.openLink) tg.openLink(url); else window.open(url, '_blank'); }
+
+function awardBonus(source, amount) {
+    userData.balance = parseFloat((userData.balance + amount).toFixed(3));
+    userData.tasksDone += 1;
+    if (!userData.taskStats) userData.taskStats = { cpalead:{tasks:0,earned:0}, cpagrip:{tasks:0,earned:0}, monetag:{tasks:0,earned:0} };
+    userData.taskStats[source].tasks += 1;
+    userData.taskStats[source].earned = parseFloat((userData.taskStats[source].earned + amount).toFixed(3));
+    const day = new Date().getDay();
+    const idx = day === 0 ? 6 : day - 1;
+    userData.incomeHistory[idx] = parseFloat((userData.incomeHistory[idx] + amount).toFixed(3));
+    saveData(); updateUI(); buildChart();
+    showToast(`+$${amount.toFixed(3)} added to balance! ✅`);
+    payReferralCommission(source, amount);
+}
+
+// ── Withdraw ───────────────────────────────────────────────
+function selectMethod(el, method) {
+    document.querySelectorAll('.method-box').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedMethod = method;
+}
+function submitWithdraw() {
+    const account = document.getElementById('withdraw-account').value.trim();
+    const amount = parseFloat(document.getElementById('withdraw-amount').value);
+    if (!selectedMethod) { showToast('Select a payment method!'); return; }
+    if (!account) { showToast('Enter account/wallet address!'); return; }
+    if (!amount || amount < MIN_WITHDRAW) { showToast(`Minimum withdrawal is $${MIN_WITHDRAW}!`); return; }
+    if (amount > userData.balance) { showToast('Insufficient balance!'); return; }
+    userData.balance = parseFloat((userData.balance - amount).toFixed(3));
+    userData.totalWithdrawn = parseFloat((userData.totalWithdrawn + amount).toFixed(2));
+    userData.withdrawHistory.push({ method: selectedMethod, account, amount, time: new Date().toLocaleString('en-BD'), status: 'Pending' });
+    saveData(); updateUI();
+    sendToBot(ADMIN_ID, `💰 Withdraw Request\nUser: ${userData.uid}\nMethod: ${selectedMethod}\nAccount: ${account}\nAmount: $${amount.toFixed(3)}`);
+    document.getElementById('withdraw-account').value = '';
+    document.getElementById('withdraw-amount').value = '';
+    document.querySelectorAll('.method-box').forEach(b => b.classList.remove('selected'));
+    selectedMethod = '';
+    showToast('Withdrawal submitted! ✅');
+    try { tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
+}
+
+// ── Withdraw History ───────────────────────────────────────
+function renderWithdrawHistory() {
+    const h = userData.withdrawHistory;
+    const html = h.length === 0
+        ? `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">No withdrawals yet</div>`
+        : h.slice().reverse().map(w => `
+            <div class="history-item">
+                <div><div class="history-method">${w.method} (${maskAccount(w.account)})</div><div class="history-time">${w.time}</div></div>
+                <div style="text-align:right;"><div class="history-amount">$${w.amount.toFixed(3)}</div><div class="${w.status==='Success'?'badge-success':'badge-pending'}">${w.status}</div></div>
+            </div>`).join('');
+    document.getElementById('withdraw-history-home').innerHTML = html;
+    document.getElementById('withdraw-history-wallet').innerHTML = html;
+}
+function maskAccount(a) { if(!a||a.length<=4) return a||'***'; return a.substring(0,3)+'***'+a.substring(a.length-2); }
+
+// ── Navigation ─────────────────────────────────────────────
+function nav(pageId, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active-page');
+    el.classList.add('active');
+    try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+}
+
+// ── Refer ──────────────────────────────────────────────────
+function copyRefLink() {
+    const link = `https://t.me/${BOT_USERNAME}?startapp=${userData.uid}`;
+    navigator.clipboard.writeText(link).then(() => showToast('Link copied! 📋'));
+    try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+}
+
+// ── Referral List ──────────────────────────────────────────
+function renderRefList() {
+    const list = userData.refList || [];
+    const el = document.getElementById('ref-list-container');
+    if (!el) return;
+    if (list.length === 0) {
+        el.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0;">No referrals yet<br><span style="font-size:11px;">Share your link to earn 4% commission!</span></div>`;
+        return;
+    }
+    el.innerHTML = list.slice().reverse().map(r => `
+        <div class="ref-list-item">
+            <div class="ref-avatar">${(r.name||'U').charAt(0).toUpperCase()}</div>
+            <div><div class="ref-name">${r.name||'User'}</div><div class="ref-time">${r.time}</div></div>
+            <div class="ref-earn">4% active</div>
+        </div>`).join('');
+}
+
+// ── Chart ──────────────────────────────────────────────────
+function buildChart() {
+    const ctx = document.getElementById('incomeChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets: [{ data: userData.incomeHistory, backgroundColor: 'rgba(79,110,247,0.7)', borderRadius: 6, borderSkipped: false }] },
+        options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `$${c.raw.toFixed(3)}` } } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#5a6a85', font: { size: 10 } } } } }
+    });
+}
+
+// ── Bot ────────────────────────────────────────────────────
+function sendToBot(chatId, msg) {
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: msg })
+    }).catch(() => {});
+}
+
+// ── Toast ──────────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
